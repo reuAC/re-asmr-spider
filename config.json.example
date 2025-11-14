@@ -1,0 +1,13 @@
+{
+  "account": "your_username",
+  "password": "your_password",
+  "max_task": 3,
+  "max_thread": 8,
+  "max_retry": 3,
+  "language": "zh-CN",
+  "proxy": "",
+  "download_state": {
+    "in_progress": false,
+    "tasks": []
+  }
+}

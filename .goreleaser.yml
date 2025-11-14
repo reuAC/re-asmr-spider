@@ -1,0 +1,205 @@
+# GoReleaser 配置文件 - 优化版
+# 文档: https://goreleaser.com
+
+version: 2
+
+# 构建前的准备工作
+before:
+  hooks:
+    - go mod tidy
+    - go mod download
+    - go generate ./...
+
+# 全局环境变量（Go 1.18+ 默认启用模块，无需 GO111MODULE）
+env:
+  - CGO_ENABLED=0
+
+# 构建配置
+builds:
+  # Unix系统构建（Linux, macOS, BSD系列）
+  - id: unix
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - freebsd
+      - openbsd
+      - netbsd
+    goarch:
+      - "386"
+      - amd64
+      - arm
+      - arm64
+      - mips
+      - mips64
+      - mipsle
+      - mips64le
+      - riscv64
+    goarm:
+      - "6"
+      - "7"
+    gomips:
+      - hardfloat
+      - softfloat
+    # 排除不支持的组合
+    ignore:
+      # macOS 只支持 amd64 和 arm64
+      - goos: darwin
+        goarch: "386"
+      - goos: darwin
+        goarch: arm
+      - goos: darwin
+        goarch: mips
+      - goos: darwin
+        goarch: mips64
+      - goos: darwin
+        goarch: mipsle
+      - goos: darwin
+        goarch: mips64le
+      - goos: darwin
+        goarch: riscv64
+      # BSD 系统排除不常用架构
+      - goos: freebsd
+        goarch: arm
+      - goos: openbsd
+        goarch: arm
+      - goos: netbsd
+        goarch: arm
+    # 使用 Git 提交时间作为模块时间戳
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    # 构建标志
+    flags:
+      - -trimpath                    # 移除文件路径前缀
+      - -buildvcs=false              # 禁用 VCS 信息嵌入
+    # 链接器标志（最强优化）
+    ldflags:
+      - -s                           # 去除符号表
+      - -w                           # 去除 DWARF 调试信息
+      - -X re-asmr-spider/version.Version={{ .Version }}
+      - -X re-asmr-spider/version.GitCommit={{ .Commit }}
+      - -X re-asmr-spider/version.BuildTime={{ .CommitDate }}
+      - -buildid=                    # 移除构建ID使构建可重现
+
+  # Windows 构建
+  - id: windows
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - windows
+    goarch:
+      - "386"
+      - amd64
+      - arm64
+    mod_timestamp: "{{ .CommitTimestamp }}"
+    flags:
+      - -trimpath
+      - -buildvcs=false
+    ldflags:
+      - -s
+      - -w
+      - -X re-asmr-spider/version.Version={{ .Version }}
+      - -X re-asmr-spider/version.GitCommit={{ .Commit }}
+      - -X re-asmr-spider/version.BuildTime={{ .CommitDate }}
+      - -buildid=
+
+# 归档配置
+archives:
+  - id: default
+    formats: ['tar.gz']
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+      {{- if .Mips }}_{{ .Mips }}{{ end }}
+    format_overrides:
+      - goos: windows
+        formats: ['zip']
+    files:
+      - README.md
+      - LICENSE*
+      - config.json.example
+
+# 校验和
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+  algorithm: sha256
+
+# 变更日志
+changelog:
+  use: github
+  sort: asc
+  abbrev: 7
+  groups:
+    - title: "新功能"
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: "Bug 修复"
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: "性能优化"
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: "文档更新"
+      regexp: '^.*?docs(\([[:word:]]+\))??!?:.+$'
+      order: 3
+    - title: "其他变更"
+      order: 999
+  filters:
+    exclude:
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+      - "^style:"
+      - "Merge pull request"
+      - "Merge branch"
+      - "Merge remote-tracking"
+      - "go mod tidy"
+      - "^WIP"
+
+# 快照配置（用于开发版本）
+snapshot:
+  version_template: "{{ .Version }}-SNAPSHOT-{{ .ShortCommit }}"
+
+# 元数据
+metadata:
+  mod_timestamp: "{{ .CommitTimestamp }}"
+
+# 发布配置
+release:
+  github:
+    owner: reuAC
+    name: re-asmr-spider
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## RE-ASMR-Spider {{ .Version }}
+
+    ### 安装方法
+
+    下载对应平台的二进制文件，解压后直接运行即可。
+
+    ### 平台说明
+
+    - `Linux`: 适用于 Linux 系统
+    - `Darwin`: 适用于 macOS 系统
+    - `Windows`: 适用于 Windows 系统
+    - `x86_64/amd64`: 64位 Intel/AMD 处理器
+    - `i386/386`: 32位 Intel/AMD 处理器
+    - `arm64`: 64位 ARM 处理器（如 Apple M1/M2）
+    - `armv6/armv7`: 32位 ARM 处理器（如树莓派）
+
+  footer: |
+    ---
+
+    **完整变更日志**: https://github.com/reuAC/re-asmr-spider/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+# 源码归档
+source:
+  enabled: true
+  name_template: "{{ .ProjectName }}_{{ .Version }}_source"
+  format: tar.gz
