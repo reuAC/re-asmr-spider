@@ -16,6 +16,10 @@ Kayan aikin saukar da sauti na ASMR mai sauƙi da inganci.
 - Goyon bayan dandamali da yawa (Windows, Linux, macOS, BSD)
 - Saitunan wakili
 
+## Hotunan Allo
+![Gwajin Sauke](./images/asmr-spider-0.png)
+![Sake Gwadawa](./images/asmr-spider-1.png)
+
 ## Shigarwa
 
 ### Saukar da Binaries da aka Gina

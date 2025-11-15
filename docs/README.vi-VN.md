@@ -16,6 +16,10 @@ Công cụ tải xuống âm thanh ASMR đơn giản và hiệu quả.
 - Hỗ trợ đa nền tảng (Windows, Linux, macOS, BSD)
 - Cấu hình proxy
 
+## Ảnh chụp màn hình
+![Thử tải xuống](./images/asmr-spider-0.png)
+![Thử lại tải xuống](./images/asmr-spider-1.png)
+
 ## Cài đặt
 
 ### Tải xuống Tệp nhị phân Đã biên dịch

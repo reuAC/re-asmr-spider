@@ -16,6 +16,10 @@ Un outil simple et efficace pour télécharger des fichiers audio ASMR.
 - Support multiplateforme (Windows, Linux, macOS, BSD)
 - Configuration du proxy
 
+## Captures d'écran
+![Tentative de téléchargement](./images/asmr-spider-0.png)
+![Réessayer le téléchargement](./images/asmr-spider-1.png)
+
 ## Installation
 
 ### Télécharger les binaires précompilés

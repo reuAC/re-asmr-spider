@@ -16,6 +16,10 @@ Basit ve verimli bir ASMR ses indirme aracı.
 - Çoklu platform desteği (Windows, Linux, macOS, BSD)
 - Proxy yapılandırması
 
+## Ekran Görüntüleri
+![İndirme Denemesi](./images/asmr-spider-0.png)
+![Yeniden Deneme](./images/asmr-spider-1.png)
+
 ## Kurulum
 
 ### Önceden Derlenmiş İkili Dosyaları İndirin

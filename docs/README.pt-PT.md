@@ -16,6 +16,10 @@ Uma ferramenta simples e eficiente para transferir ficheiros de áudio ASMR.
 - Suporte multiplataforma (Windows, Linux, macOS, BSD)
 - Configuração de proxy
 
+## Capturas de tela
+![Tentativa de download](./images/asmr-spider-0.png)
+![Tentar novamente](./images/asmr-spider-1.png)
+
 ## Instalação
 
 ### Transferir binários pré-compilados

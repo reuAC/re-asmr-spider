@@ -16,6 +16,10 @@
 - 多平台支持（Windows、Linux、macOS、BSD）
 - 代理配置
 
+## 运行截图
+![尝试下载作品](./images/asmr-spider-0.png)
+![重试下载](./images/asmr-spider-1.png)
+
 ## 安装
 
 ### 下载预编译二进制文件

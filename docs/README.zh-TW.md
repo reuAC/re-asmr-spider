@@ -16,6 +16,10 @@
 - 多平台支援（Windows、Linux、macOS、BSD）
 - 代理伺服器設定
 
+## 運行截圖
+![嘗試下載作品](./images/asmr-spider-0.png)
+![重試下載](./images/asmr-spider-1.png)
+
 ## 安裝
 
 ### 下載預編譯執行檔
@@ -129,7 +133,7 @@ go build -o re-asmr-spider
 ### 下載音訊
 
 1. 執行程式
-2. 選擇選項 `1. Start Download`
+2. 選擇選項 `1. 開始下載`
 3. 輸入 RJ 編號（例如：`RJ373001`）
 4. 若要下載多個檔案，請用空格分隔 RJ 編號（例如：`RJ373001 RJ123456 RJ789012`）
 

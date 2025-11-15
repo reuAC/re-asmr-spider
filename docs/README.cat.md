@@ -16,6 +16,10 @@
 - 支持多平台（Windows、Linux、macOS、BSD）喵
 - 代理配置喵
 
+## 运行截图喵
+![尝试下载作品喵](./images/asmr-spider-0.png)
+![重试下载喵](./images/asmr-spider-1.png)
+
 ## 安装喵
 
 ### 下载预编译二进制文件喵

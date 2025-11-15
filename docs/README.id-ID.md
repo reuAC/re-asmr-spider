@@ -16,6 +16,10 @@ Alat unduh audio ASMR yang sederhana dan efisien.
 - Dukungan multi-platform (Windows, Linux, macOS, BSD)
 - Konfigurasi proxy
 
+## Tangkapan Layar
+![Percobaan Unduh](./images/asmr-spider-0.png)
+![Coba Lagi Unduh](./images/asmr-spider-1.png)
+
 ## Instalasi
 
 ### Unduh Binari yang Sudah Dibuat

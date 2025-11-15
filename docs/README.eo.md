@@ -16,6 +16,10 @@ Simpla kaj efika ASMR-aŭdio elŝuta ilo.
 - Multplatforma subteno (Windows, Linux, macOS, BSD)
 - Prokurila agordo
 
+## Ekrankopioj
+![Elŝuta Provo](./images/asmr-spider-0.png)
+![Reprovi Elŝuton](./images/asmr-spider-1.png)
+
 ## Instalado
 
 ### Elŝuti Antaŭkonstruitajn Duumajn Dosierojn

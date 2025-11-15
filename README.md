@@ -16,6 +16,10 @@ A simple and efficient ASMR audio download tool.
 - Multi-platform support (Windows, Linux, macOS, BSD)
 - Proxy configuration
 
+## Screenshots
+![Download Attempt](docs/images/asmr-spider-0.png)
+![Retry Download](docs/images/asmr-spider-1.png)
+
 ## Installation
 
 ### Download Pre-built Binaries

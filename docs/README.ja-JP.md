@@ -16,6 +16,10 @@
 - マルチプラットフォームサポート（Windows、Linux、macOS、BSD）
 - プロキシ設定
 
+## スクリーンショット
+![ダウンロード試行](./images/asmr-spider-0.png)
+![再試行ダウンロード](./images/asmr-spider-1.png)
+
 ## インストール
 
 ### ビルド済みバイナリのダウンロード
