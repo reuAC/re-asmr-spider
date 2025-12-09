@@ -10,9 +10,13 @@ import (
 	"sync"
 )
 
+
 var (
 	defaultUA                    = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"
 	ErrUnsupportedMultiThreading = errors.New("unsupported multi-threading")
+	// bufferSize 定义缓冲区大小为 8MB，平衡内存占用和 CPU 效率
+	// 对于VPS等网络环境较好的场景，较大的buffer可以显著提升性能
+	bufferSize = 8 * 1024 * 1024
 )
 
 type BlockMetaData struct {
@@ -22,17 +26,31 @@ type BlockMetaData struct {
 }
 
 type MultiThreadDownloader struct {
-	Url          string
-	SavePath     string
-	FileName     string
-	FullPath     string
-	Client       *http.Client
-	Headers      map[string]string
-	Blocks       []*BlockMetaData
-	ThreadCount  int
-	ProgressBar  *ProgressBar
-	OnFailure    func(url, savePath, fileName string, err error)
-	RetryCount   int
+	Url         string
+	SavePath    string
+	FileName    string
+	FullPath    string
+	Client      *http.Client
+	Headers     map[string]string
+	Blocks      []*BlockMetaData
+	ThreadCount int
+	ProgressBar *ProgressBar
+	OnFailure   func(url, savePath, fileName string, err error)
+	RetryCount  int
+}
+
+// progressWriter 封装 io.Writer 以更新进度条
+type progressWriter struct {
+	w   io.Writer
+	bar *ProgressBar
+}
+
+func (pw *progressWriter) Write(p []byte) (int, error) {
+	n, err := pw.w.Write(p)
+	if n > 0 && pw.bar != nil {
+		pw.bar.Add(int64(n))
+	}
+	return n, err
 }
 
 func NewDownloader(url string, path string, name string, threadCount int, headers map[string]string) *MultiThreadDownloader {
@@ -79,42 +97,37 @@ func (m *MultiThreadDownloader) Download() error {
 
 func (m *MultiThreadDownloader) initDownload() error {
 	var contentLength int64
+
+	// 辅助函数：使用 io.CopyBuffer 优化流式复制
 	copyStream := func(s io.ReadCloser, size int64) error {
-		file, err := os.OpenFile(m.FullPath, os.O_WRONLY|os.O_CREATE, 0o666)
+		file, err := os.OpenFile(m.FullPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o666)
 		if err != nil {
 			return err
 		}
-		defer func() { _ = file.Close() }()
+		defer file.Close()
+
+		// 使用 bufio 减少磁盘 IO 系统调用
+		writer := bufio.NewWriterSize(file, bufferSize)
+		defer writer.Flush()
 
 		// 创建进度条
 		if size > 0 {
 			m.ProgressBar = NewProgressBar(size, m.FileName)
 		}
 
-		// 使用带进度的读取
-		buffer := make([]byte, 32*1024)
-		for {
-			n, err := s.Read(buffer)
-			if n > 0 {
-				if _, writeErr := file.Write(buffer[:n]); writeErr != nil {
-					return writeErr
-				}
-				if m.ProgressBar != nil {
-					m.ProgressBar.Add(int64(n))
-				}
-			}
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				return err
-			}
+		// 封装 writer 以自动更新进度
+		pw := &progressWriter{w: writer, bar: m.ProgressBar}
+
+		buf := make([]byte, bufferSize)
+		_, err = io.CopyBuffer(pw, s, buf)
+		if err != nil {
+			return err
 		}
 
 		if m.ProgressBar != nil {
 			m.ProgressBar.Finish()
 		}
-		return ErrUnsupportedMultiThreading
+		return ErrUnsupportedMultiThreading // 按照原逻辑返回此错误以终止后续多线程逻辑
 	}
 	req, err := http.NewRequest("GET", m.Url, nil)
 	if err != nil {
@@ -127,18 +140,22 @@ func (m *MultiThreadDownloader) initDownload() error {
 	if _, ok := m.Headers["User-Agent"]; !ok {
 		req.Header["User-Agent"] = []string{defaultUA}
 	}
+	// 尝试获取文件头信息或探测 Range 支持
 	req.Header.Set("range", "bytes=0-")
 	resp, err := m.Client.Do(req)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return errors.New("response status unsuccessful: " + strconv.FormatInt(int64(resp.StatusCode), 10))
 	}
+	// 如果服务器直接返回 200 (不支持 Range) 或者没有 ContentLength
 	if resp.StatusCode == 200 {
 		return copyStream(resp.Body, resp.ContentLength)
 	}
+
 	if resp.StatusCode == 206 {
 		contentLength = resp.ContentLength
 		// 创建进度条
@@ -152,9 +169,13 @@ func (m *MultiThreadDownloader) initDownload() error {
 			}
 			return contentLength
 		}()
+
+		// 如果块大小等于内容长度，说明不需要分块
 		if blockSize == contentLength {
 			return copyStream(resp.Body, contentLength)
 		}
+
+		// 计算分块
 		var tmp int64
 		for tmp+blockSize < contentLength {
 			m.Blocks = append(m.Blocks, &BlockMetaData{
@@ -178,10 +199,16 @@ func (m *MultiThreadDownloader) downloadBlocks(block *BlockMetaData) error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = file.Close() }()
-	_, _ = file.Seek(block.BeginOffset, io.SeekStart)
-	writer := bufio.NewWriter(file)
-	defer func() { _ = writer.Flush() }()
+	defer file.Close()
+
+	// 定位到该块的起始位置
+	if _, err := file.Seek(block.BeginOffset, io.SeekStart); err != nil {
+		return err
+	}
+
+	// 使用配置的bufferSize来优化IO性能
+	writer := bufio.NewWriterSize(file, bufferSize)
+	defer writer.Flush()
 
 	for k, v := range m.Headers {
 		req.Header.Set(k, v)
@@ -190,52 +217,66 @@ func (m *MultiThreadDownloader) downloadBlocks(block *BlockMetaData) error {
 		req.Header["User-Agent"] = []string{defaultUA}
 	}
 	req.Header.Set("range", "bytes="+strconv.FormatInt(block.BeginOffset, 10)+"-"+strconv.FormatInt(block.EndOffset, 10))
+
 	resp, err := m.Client.Do(req)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return errors.New("response status unsuccessful: " + strconv.FormatInt(int64(resp.StatusCode), 10))
 	}
-	buffer := make([]byte, 1024)
-	i, err := resp.Body.Read(buffer)
+
+	// 使用大buffer来减少系统调用，提升VPS等网络环境下的性能
+	buffer := make([]byte, bufferSize)
+
 	for {
-		if err != nil && err != io.EOF {
-			return err
-		}
-		i64 := int64(len(buffer[:i]))
-		needSize := block.EndOffset + 1 - block.BeginOffset
-		if i64 > needSize {
-			i64 = needSize
-			err = io.EOF
-		}
-		_, e := writer.Write(buffer[:i64])
-		if e != nil {
-			return e
-		}
-		block.BeginOffset += i64
-		block.DownloadedSize += i64
+		n, readErr := resp.Body.Read(buffer)
+		if n > 0 {
+			// 计算需要写入的大小，防止多写
+			bytesToWrite := int64(n)
+			remaining := block.EndOffset + 1 - block.BeginOffset
+			if bytesToWrite > remaining {
+				bytesToWrite = remaining
+			}
 
-		// 更新进度条
-		if m.ProgressBar != nil {
-			m.ProgressBar.Add(i64)
+			if _, writeErr := writer.Write(buffer[:bytesToWrite]); writeErr != nil {
+				return writeErr
+			}
+
+			block.BeginOffset += bytesToWrite
+			block.DownloadedSize += bytesToWrite
+
+			if m.ProgressBar != nil {
+				m.ProgressBar.Add(bytesToWrite)
+			}
+
+			if block.BeginOffset > block.EndOffset {
+				break
+			}
 		}
 
-		if err == io.EOF || block.BeginOffset > block.EndOffset {
+		if readErr == io.EOF {
 			break
 		}
-		i, err = resp.Body.Read(buffer)
+		if readErr != nil {
+			return readErr
+		}
 	}
 	return nil
 }
 
 func (m *MultiThreadDownloader) singleThreadDownload() error {
-	file, err := os.OpenFile(m.FullPath, os.O_WRONLY|os.O_CREATE, 0o666)
+	file, err := os.OpenFile(m.FullPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o666)
 	if err != nil {
 		return err
 	}
-	defer func() { _ = file.Close() }()
+	defer file.Close()
+
+	// 使用 bufio 优化磁盘写入
+	writer := bufio.NewWriterSize(file, bufferSize)
+	defer writer.Flush()
 
 	req, err := http.NewRequest("GET", m.Url, nil)
 	if err != nil {
@@ -253,31 +294,19 @@ func (m *MultiThreadDownloader) singleThreadDownload() error {
 	if err != nil {
 		return err
 	}
-	defer func() { _ = resp.Body.Close() }()
+	defer resp.Body.Close()
 
 	// 创建进度条
 	if resp.ContentLength > 0 {
 		m.ProgressBar = NewProgressBar(resp.ContentLength, m.FileName)
 	}
 
-	// 使用带进度的读取
-	buffer := make([]byte, 32*1024)
-	for {
-		n, err := resp.Body.Read(buffer)
-		if n > 0 {
-			if _, writeErr := file.Write(buffer[:n]); writeErr != nil {
-				return writeErr
-			}
-			if m.ProgressBar != nil {
-				m.ProgressBar.Add(int64(n))
-			}
-		}
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return err
-		}
+	// 使用 io.CopyBuffer 替代手动循环，提升性能
+	pw := &progressWriter{w: writer, bar: m.ProgressBar}
+	buf := make([]byte, bufferSize)
+
+	if _, err := io.CopyBuffer(pw, resp.Body, buf); err != nil {
+		return err
 	}
 
 	if m.ProgressBar != nil {
