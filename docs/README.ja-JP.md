@@ -1,6 +1,6 @@
 # re-ASMR-Spider
 
-[简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [English](../README.md) | 日本語 | [Русский](README.ru-RU.md) | [Deutsch](README.de-DE.md) | [Español](README.es-ES.md) | [Français](README.fr-FR.md) | [Português](README.pt-PT.md) | [Indonesia](README.id-ID.md) | [Tiếng Việt](README.vi-VN.md) | [हिन्दी](README.hi-IN.md) | [বাংলা](README.bn-BD.md) | [తెలుగు](README.te-IN.md) | [Türkçe](README.tr-TR.md) | [اردو](README.ur-PK.md) | [Hausa](README.ha-NG.md) | [Esperanto](README.eo.md) | [喵喵语](README.cat.md) | [火星语](README.martian.md)
+[简体中文](README.zh-CN.md) | [繁體中文](README.zh-TW.md) | [English](../README.md) | 日本語
 
 ---
 

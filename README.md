@@ -1,6 +1,6 @@
 # re-ASMR-Spider
 
-[简体中文](docs/README.zh-CN.md) | [繁體中文](docs/README.zh-TW.md) | English | [日本語](docs/README.ja-JP.md) | [Русский](docs/README.ru-RU.md) | [Deutsch](docs/README.de-DE.md) | [Español](docs/README.es-ES.md) | [Français](docs/README.fr-FR.md) | [Português](docs/README.pt-PT.md) | [Indonesia](docs/README.id-ID.md) | [Tiếng Việt](docs/README.vi-VN.md) | [हिन्दी](docs/README.hi-IN.md) | [বাংলা](docs/README.bn-BD.md) | [తెలుగు](docs/README.te-IN.md) | [Türkçe](docs/README.tr-TR.md) | [اردو](docs/README.ur-PK.md) | [Hausa](docs/README.ha-NG.md) | [Esperanto](docs/README.eo.md) | [喵喵语](docs/README.cat.md) | [火星语](docs/README.martian.md)
+[简体中文](docs/README.zh-CN.md) | [繁體中文](docs/README.zh-TW.md) | English | [日本語](docs/README.ja-JP.md)
 
 ---
 
@@ -145,25 +145,10 @@ If a download is interrupted, the program will detect incomplete tasks on the ne
 
 ## Supported Languages
 
-- Chinese (Simplified & Traditional)
+- Chinese (Simplified) - 简体中文
+- Chinese (Traditional) - 繁體中文
 - English
-- Japanese
-- German
-- Spanish
-- French
-- Portuguese
-- Russian
-- Indonesian
-- Vietnamese
-- Hindi
-- Bengali
-- Telugu
-- Turkish
-- Urdu
-- Hausa
-- Esperanto
-- Cat Language
-- Martian
+- Japanese - 日本語
 
 Switch language via the configuration menu (option 4) or by editing `config.json`.
 
