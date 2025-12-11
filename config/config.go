@@ -19,18 +19,20 @@ type Config struct {
 	MaxRetry      int           `json:"max_retry"`
 	Language      string        `json:"language"`
 	Proxy         string        `json:"proxy"`
+	BufferSizeMB  int           `json:"buffer_size_mb"`
 	DownloadState DownloadState `json:"download_state"`
 }
 
 func generateDefaultConfig() *Config {
 	return &Config{
-		Account:   "guest",
-		Password:  "guest",
-		MaxTask:   1,
-		MaxThread: 1,
-		MaxRetry:  3,
-		Language:  "zh-CN",
-		Proxy:     "",
+		Account:      "guest",
+		Password:     "guest",
+		MaxTask:      1,
+		MaxThread:    1,
+		MaxRetry:     3,
+		Language:     "zh-CN",
+		Proxy:        "",
+		BufferSizeMB: 8, // 默认8MB，适用于VPS和云存储环境
 		DownloadState: DownloadState{
 			InProgress: false,
 			Tasks:      []string{},
@@ -85,5 +87,28 @@ func GetConfig() (*Config, error) {
 		return nil, err
 	}
 
+	// 验证和修正配置值
+	validateConfig(&config)
+
 	return &config, nil
+}
+
+// validateConfig 验证并修正配置值
+func validateConfig(cfg *Config) {
+	// 验证BufferSizeMB，如果为0或负数，设置为默认值8MB
+	if cfg.BufferSizeMB <= 0 {
+		cfg.BufferSizeMB = 8
+	}
+	// 限制最小值为1MB，最大值为64MB
+	if cfg.BufferSizeMB < 1 {
+		cfg.BufferSizeMB = 1
+	}
+	if cfg.BufferSizeMB > 64 {
+		cfg.BufferSizeMB = 64
+	}
+}
+
+// GetBufferSize 获取字节单位的buffer大小
+func (c *Config) GetBufferSize() int {
+	return c.BufferSizeMB * 1024 * 1024
 }

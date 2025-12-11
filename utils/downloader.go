@@ -14,9 +14,6 @@ import (
 var (
 	defaultUA                    = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"
 	ErrUnsupportedMultiThreading = errors.New("unsupported multi-threading")
-	// bufferSize 定义缓冲区大小为 8MB，平衡内存占用和 CPU 效率
-	// 对于VPS等网络环境较好的场景，较大的buffer可以显著提升性能
-	bufferSize = 8 * 1024 * 1024
 )
 
 type BlockMetaData struct {
@@ -34,6 +31,7 @@ type MultiThreadDownloader struct {
 	Headers     map[string]string
 	Blocks      []*BlockMetaData
 	ThreadCount int
+	BufferSize  int // 缓冲区大小（字节），从配置文件读取
 	ProgressBar *ProgressBar
 	OnFailure   func(url, savePath, fileName string, err error)
 	RetryCount  int
@@ -53,7 +51,11 @@ func (pw *progressWriter) Write(p []byte) (int, error) {
 	return n, err
 }
 
-func NewDownloader(url string, path string, name string, threadCount int, headers map[string]string) *MultiThreadDownloader {
+func NewDownloader(url string, path string, name string, threadCount int, bufferSize int, headers map[string]string) *MultiThreadDownloader {
+	// 如果bufferSize为0，使用默认值8MB
+	if bufferSize <= 0 {
+		bufferSize = 8 * 1024 * 1024
+	}
 	return &MultiThreadDownloader{
 		Url:         url,
 		SavePath:    path,
@@ -63,6 +65,7 @@ func NewDownloader(url string, path string, name string, threadCount int, header
 		Headers:     headers,
 		Blocks:      nil,
 		ThreadCount: threadCount,
+		BufferSize:  bufferSize,
 	}
 }
 
@@ -107,7 +110,7 @@ func (m *MultiThreadDownloader) initDownload() error {
 		defer file.Close()
 
 		// 使用 bufio 减少磁盘 IO 系统调用
-		writer := bufio.NewWriterSize(file, bufferSize)
+		writer := bufio.NewWriterSize(file, m.BufferSize)
 		defer writer.Flush()
 
 		// 创建进度条
@@ -118,7 +121,7 @@ func (m *MultiThreadDownloader) initDownload() error {
 		// 封装 writer 以自动更新进度
 		pw := &progressWriter{w: writer, bar: m.ProgressBar}
 
-		buf := make([]byte, bufferSize)
+		buf := make([]byte, m.BufferSize)
 		_, err = io.CopyBuffer(pw, s, buf)
 		if err != nil {
 			return err
@@ -206,8 +209,8 @@ func (m *MultiThreadDownloader) downloadBlocks(block *BlockMetaData) error {
 		return err
 	}
 
-	// 使用配置的bufferSize来优化IO性能
-	writer := bufio.NewWriterSize(file, bufferSize)
+	// 使用配置的BufferSize来优化IO性能
+	writer := bufio.NewWriterSize(file, m.BufferSize)
 	defer writer.Flush()
 
 	for k, v := range m.Headers {
@@ -229,7 +232,7 @@ func (m *MultiThreadDownloader) downloadBlocks(block *BlockMetaData) error {
 	}
 
 	// 使用大buffer来减少系统调用，提升VPS等网络环境下的性能
-	buffer := make([]byte, bufferSize)
+	buffer := make([]byte, m.BufferSize)
 
 	for {
 		n, readErr := resp.Body.Read(buffer)
@@ -275,7 +278,7 @@ func (m *MultiThreadDownloader) singleThreadDownload() error {
 	defer file.Close()
 
 	// 使用 bufio 优化磁盘写入
-	writer := bufio.NewWriterSize(file, bufferSize)
+	writer := bufio.NewWriterSize(file, m.BufferSize)
 	defer writer.Flush()
 
 	req, err := http.NewRequest("GET", m.Url, nil)
@@ -303,7 +306,7 @@ func (m *MultiThreadDownloader) singleThreadDownload() error {
 
 	// 使用 io.CopyBuffer 替代手动循环，提升性能
 	pw := &progressWriter{w: writer, bar: m.ProgressBar}
-	buf := make([]byte, bufferSize)
+	buf := make([]byte, m.BufferSize)
 
 	if _, err := io.CopyBuffer(pw, resp.Body, buf); err != nil {
 		return err

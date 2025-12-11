@@ -51,6 +51,7 @@ type ASMRClient struct {
 	Authorization string
 	WorkerPool    *utils.WorkerPool
 	ThreadCount   int
+	BufferSize    int
 	FailedTasks   []FailedTask
 	MaxRetry      int
 	mu            sync.Mutex
@@ -66,10 +67,11 @@ type track struct {
 	MediaDownloadURL string  `json:"mediaDownloadUrl,omitempty"`
 }
 
-func NewASMRClient(maxTask int, maxThread int, maxRetry int) *ASMRClient {
+func NewASMRClient(maxTask int, maxThread int, maxRetry int, bufferSize int) *ASMRClient {
 	return &ASMRClient{
 		WorkerPool:  utils.NewWorkerPool(maxTask),
 		ThreadCount: maxThread,
+		BufferSize:  bufferSize,
 		FailedTasks: make([]FailedTask, 0),
 		MaxRetry:    maxRetry,
 	}
@@ -243,7 +245,7 @@ func (ac *ASMRClient) downloadFileInternal(url string, dirPath string, fileName 
 		}
 	}
 
-	downloader := utils.NewDownloader(url, dirPath, fileName, ac.ThreadCount, headers)
+	downloader := utils.NewDownloader(url, dirPath, fileName, ac.ThreadCount, ac.BufferSize, headers)
 	downloader.RetryCount = retryCount
 	downloader.OnFailure = func(failedUrl, failedPath, failedName string, err error) {
 		ac.AddFailedTask(failedUrl, failedPath, failedName, retryCount)
