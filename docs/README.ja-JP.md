@@ -158,6 +158,14 @@ go build -o re-asmr-spider
 -max-retry int        ダウンロード失敗時の最大リトライ回数
 -buffer-size int      バッファサイズ（MB）、範囲 1-64、デフォルト 8
 -proxy string         HTTP/HTTPSプロキシ（例：http://127.0.0.1:7890）
+-format-priority string
+                      形式の優先順位、競合する同名ファイルを解決しダウンロード量を削減、カンマ区切り（例：flac,wav,mp3）
+                      同名ファイルが複数の形式で存在する場合、最も優先順位の高い形式のみダウンロード
+                      （インタラクティブモードでは各選択をユーザーに尋ねます）
+-include-formats string
+                      追加でダウンロードする拡張子、カンマ区切り（例：lrc,jpg）
+                      上記の競合解決後、指定された拡張子のすべてのファイルを追加ダウンロード
+                      -format-priority と組み合わせて使用可能
 -version              バージョン情報を表示
 -help                 ヘルプメッセージを表示
 ```

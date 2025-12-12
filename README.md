@@ -158,6 +158,14 @@ For automation and scripting, use CLI mode to download directly without interact
 -max-retry int        Maximum retry attempts for failed downloads
 -buffer-size int      Buffer size in MB (1-64, default: 8)
 -proxy string         HTTP/HTTPS proxy (e.g., http://127.0.0.1:7890)
+-format-priority string
+                      Format priority for resolving conflicting files with the same name, reducing downloads, comma-separated (e.g., flac,wav,mp3)
+                      When files with the same name exist in multiple formats, only download the highest priority format
+                      (Interactive mode will prompt user for each choice)
+-include-formats string
+                      Additional file extensions to download, comma-separated (e.g., lrc,jpg)
+                      After resolving conflicts above, download all files with specified extensions
+                      Can be used with -format-priority
 -version              Show version information
 -help                 Show help message
 ```

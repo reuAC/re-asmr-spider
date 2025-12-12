@@ -158,6 +158,14 @@ go build -o re-asmr-spider
 -max-retry int        下載失敗的最大重試次數
 -buffer-size int      緩衝區大小（MB），範圍 1-64，預設 8
 -proxy string         HTTP/HTTPS 代理伺服器（例如：http://127.0.0.1:7890）
+-format-priority string
+                      格式優先順序，用於解決衝突的同名檔案，減少下載量，逗號分隔（例如：flac,wav,mp3）
+                      當同名檔案存在多種格式時，只下載優先順序最高的格式
+                      （互動模式會逐個詢問使用者選擇）
+-include-formats string
+                      額外下載的副檔名，逗號分隔（例如：lrc,jpg）
+                      在上述衝突解決後，額外下載所有指定副檔名的檔案
+                      可與 -format-priority 配合使用
 -version              顯示版本資訊
 -help                 顯示說明訊息
 ```
