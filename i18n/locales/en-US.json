@@ -13,6 +13,11 @@
 
   "unfinished_download_detected": "Unfinished download tasks detected!",
   "unfinished_tasks": "Unfinished RJ numbers: %s",
+  "format_strategy_saved": "Format filter strategy saved",
+  "format_strategy_found": "Saved format filter strategy found",
+  "use_saved_strategy_prompt": "Use saved format selection? (y/n, default y)",
+  "using_saved_strategy": "Using saved format strategy",
+  "reselecting_format": "Reselecting format",
   "continue_download_prompt": "Continue downloading? (y/n)",
   "continuing_download": "Continuing download...",
   "download_cancelled": "Download cancelled",
@@ -121,5 +126,21 @@
   "request_failed": "Request failed: %v",
   "network_error": "Network error: %v",
   "parse_error": "Parse error: %v",
-  "file_error": "File error: %v"
+  "file_error": "File error: %v",
+
+  "format_conflict_detected": "Detected %d groups of files with same name but different formats",
+  "format_conflict_prompt": "File \"%s\" has the following formats:",
+  "format_option_all": "a. Download all formats",
+  "format_option_number": "%d. %s",
+  "format_option_batch": "%d. Apply %s to all remaining",
+  "format_option_all_remaining": "b. Download all formats for remaining files",
+  "format_option_all_global": "c. Download all formats for all files",
+  "format_prompt_choice": "Please choose (multi-select like '1 2', add 0 to batch apply like '1 2 0', or enter a/b/c)",
+  "format_selection_invalid": "Invalid selection, will download all formats",
+  "format_selection_confirmed": "Selected: %s",
+  "format_batch_applied": "Applied batch selection to [%s]: %s",
+  "format_batch_enabled": "Batch mode enabled (selection: %s), will apply to remaining %d files",
+  "format_all_remaining_enabled": "Batch mode enabled (all formats), will apply to remaining %d files",
+  "format_all_global_enabled": "Global mode enabled, all conflicted files will download all formats",
+  "format_priority_applied": "Format priority applied: %s"
 }

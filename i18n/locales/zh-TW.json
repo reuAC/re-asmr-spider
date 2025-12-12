@@ -13,6 +13,11 @@
 
   "unfinished_download_detected": "檢測到未完成的下載任務!",
   "unfinished_tasks": "未完成的 RJ 號: %s",
+  "format_strategy_saved": "已保存格式篩選策略",
+  "format_strategy_found": "發現已保存的格式篩選策略",
+  "use_saved_strategy_prompt": "是否使用上次的格式選擇? (y/n, 預設y)",
+  "using_saved_strategy": "使用保存的格式策略",
+  "reselecting_format": "重新選擇格式",
   "continue_download_prompt": "是否繼續下載? (y/n)",
   "continuing_download": "繼續下載...",
   "download_cancelled": "已取消繼續下載",
@@ -121,5 +126,21 @@
   "request_failed": "請求失敗: %v",
   "network_error": "網絡錯誤: %v",
   "parse_error": "解析錯誤: %v",
-  "file_error": "文件錯誤: %v"
+  "file_error": "文件錯誤: %v",
+
+  "format_conflict_detected": "檢測到 %d 組同名不同格式的檔案",
+  "format_conflict_prompt": "檔案 \"%s\" 存在以下格式:",
+  "format_option_all": "a. 下載所有格式",
+  "format_option_number": "%d. %s",
+  "format_option_batch": "%d. 餘下的都使用 %s",
+  "format_option_all_remaining": "b. 餘下的均下載全部格式",
+  "format_option_all_global": "c. 全部檔案均下載全部格式",
+  "format_prompt_choice": "請選擇 (可多選如 '1 2'，末尾加 0 批量應用如 '1 2 0'，或輸入 a/b/c)",
+  "format_selection_invalid": "無效選擇，將下載所有格式",
+  "format_selection_confirmed": "已選擇: %s",
+  "format_batch_applied": "應用批量選擇到 [%s]: %s",
+  "format_batch_enabled": "已啟用批量模式 (選擇: %s)，將應用到剩餘 %d 個檔案",
+  "format_all_remaining_enabled": "已啟用批量模式（所有格式），將應用到剩餘 %d 個檔案",
+  "format_all_global_enabled": "已啟用全局模式，所有衝突檔案都將下載全部格式",
+  "format_priority_applied": "應用格式優先級: %s"
 }

@@ -13,6 +13,11 @@
 
   "unfinished_download_detected": "未完了のダウンロードタスクが検出されました！",
   "unfinished_tasks": "未完了のRJ番号: %s",
+  "format_strategy_saved": "形式フィルタ戦略を保存しました",
+  "format_strategy_found": "保存された形式フィルタ戦略が見つかりました",
+  "use_saved_strategy_prompt": "保存された形式選択を使用しますか？ (y/n, デフォルトy)",
+  "using_saved_strategy": "保存された形式戦略を使用",
+  "reselecting_format": "形式を再選択",
   "continue_download_prompt": "ダウンロードを続行しますか？ (y/n)",
   "continuing_download": "ダウンロードを続行しています...",
   "download_cancelled": "ダウンロードの続行をキャンセルしました",
@@ -121,5 +126,21 @@
   "request_failed": "リクエストに失敗しました: %v",
   "network_error": "ネットワークエラー: %v",
   "parse_error": "解析エラー: %v",
-  "file_error": "ファイルエラー: %v"
+  "file_error": "ファイルエラー: %v",
+
+  "format_conflict_detected": "%d グループの同名異形式ファイルを検出しました",
+  "format_conflict_prompt": "ファイル \"%s\" には以下の形式があります:",
+  "format_option_all": "a. すべての形式をダウンロード",
+  "format_option_number": "%d. %s",
+  "format_option_batch": "%d. 残りすべてに %s を使用",
+  "format_option_all_remaining": "b. 残りすべてに全形式をダウンロード",
+  "format_option_all_global": "c. 全ファイルに全形式をダウンロード",
+  "format_prompt_choice": "選択してください (複数選択可 '1 2'、末尾に 0 を追加でバッチ適用 '1 2 0'、または a/b/c を入力)",
+  "format_selection_invalid": "無効な選択です。すべての形式をダウンロードします",
+  "format_selection_confirmed": "選択済み: %s",
+  "format_batch_applied": "[%s] にバッチ選択を適用: %s",
+  "format_batch_enabled": "バッチモードを有効化 (選択: %s)、残り %d ファイルに適用されます",
+  "format_all_remaining_enabled": "バッチモード有効（全形式）、残り %d ファイルに適用されます",
+  "format_all_global_enabled": "グローバルモード有効、すべての競合ファイルが全形式をダウンロードします",
+  "format_priority_applied": "形式の優先順位を適用: %s"
 }
