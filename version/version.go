@@ -6,7 +6,7 @@ var (
 	// AppName 应用程序名称
 	AppName = "re-ASMR-Spider"
 	// Version 应用程序版本
-	Version = "1.0.0"
+	Version = "1.1.0"
 	// BuildTime 构建时间（可选，通过 ldflags 注入）
 	BuildTime = "unknown"
 	// GitCommit Git 提交哈希（可选，通过 ldflags 注入）
