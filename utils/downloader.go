@@ -6,10 +6,20 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"sync"
 )
 
+
+const (
+	// blockSizeMargin 分块下载时的边界安全余量（字节）
+	blockSizeMargin = 10
+	// minFileSizeForMultiThread 启用多线程下载的最小文件大小（1MB）
+	minFileSizeForMultiThread = 1024 * 1024
+	// defaultBufferSize 默认缓冲区大小（8MB）
+	defaultBufferSize = 8 * 1024 * 1024
+)
 
 var (
 	defaultUA                    = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36"
@@ -52,15 +62,15 @@ func (pw *progressWriter) Write(p []byte) (int, error) {
 }
 
 func NewDownloader(url string, path string, name string, threadCount int, bufferSize int, headers map[string]string) *MultiThreadDownloader {
-	// 如果bufferSize为0，使用默认值8MB
+	// 如果bufferSize为0，使用默认值
 	if bufferSize <= 0 {
-		bufferSize = 8 * 1024 * 1024
+		bufferSize = defaultBufferSize
 	}
 	return &MultiThreadDownloader{
 		Url:         url,
 		SavePath:    path,
 		FileName:    name,
-		FullPath:    path + "/" + name,
+		FullPath:    filepath.Join(path, name),
 		Client:      Client.Get().(*http.Client),
 		Headers:     headers,
 		Blocks:      nil,
@@ -70,6 +80,9 @@ func NewDownloader(url string, path string, name string, threadCount int, buffer
 }
 
 func (m *MultiThreadDownloader) Download() error {
+	// 确保Client在下载完成后被释放
+	defer Client.Put(m.Client)
+
 	if m.ThreadCount < 2 {
 		err := m.singleThreadDownload()
 		return err
@@ -167,8 +180,8 @@ func (m *MultiThreadDownloader) initDownload() error {
 		}
 
 		blockSize := func() int64 {
-			if contentLength > 1024*1024 {
-				return (contentLength / int64(m.ThreadCount)) - 10
+			if contentLength > minFileSizeForMultiThread {
+				return (contentLength / int64(m.ThreadCount)) - blockSizeMargin
 			}
 			return contentLength
 		}()

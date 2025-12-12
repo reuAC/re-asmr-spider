@@ -15,6 +15,8 @@ type WorkerPool struct {
 	TaskQueue WorkerChan
 	Limit     int
 	Count     int
+	closed    bool
+	closeMux  sync.Mutex
 }
 
 func NewWorkerPool(WorkerCount int) *WorkerPool {
@@ -25,6 +27,32 @@ func NewWorkerPool(WorkerCount int) *WorkerPool {
 	}
 }
 
+// Submit 提交任务到工作池（在提交时就增加 WaitGroup 计数，避免竞态条件）
+func (wp *WorkerPool) Submit(task *MultiThreadDownloader) {
+	wp.closeMux.Lock()
+	defer wp.closeMux.Unlock()
+
+	if wp.closed {
+		return // 如果已关闭，则忽略新任务
+	}
+
+	wp.Add(1)
+	wp.TaskQueue <- task
+}
+
+// Close 关闭工作池，不再接受新任务
+func (wp *WorkerPool) Close() {
+	wp.closeMux.Lock()
+	defer wp.closeMux.Unlock()
+
+	if wp.closed {
+		return // 避免重复关闭
+	}
+
+	wp.closed = true
+	close(wp.TaskQueue)
+}
+
 func (wp *WorkerPool) Start() {
 	go func() {
 		for t := range wp.TaskQueue {
@@ -32,7 +60,6 @@ func (wp *WorkerPool) Start() {
 			for wp.Count >= wp.Limit {
 				wp.cond.Wait()
 			}
-			wp.Add(1)
 			wp.cond.L.Unlock()
 			go func(t *MultiThreadDownloader) {
 				wp.cond.L.Lock()

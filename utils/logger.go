@@ -47,7 +47,8 @@ func isWindowsColorSupported() bool {
 	return true
 }
 
-func (l *Logger) log(level LogLevel, format string, args ...interface{}) {
+// printLog 内部方法：打印日志消息
+func (l *Logger) printLog(level LogLevel, message string) {
 	var prefix string
 	var color string
 
@@ -69,48 +70,82 @@ func (l *Logger) log(level LogLevel, format string, args ...interface{}) {
 		color = colorRed
 	}
 
-	message := fmt.Sprintf(format, args...)
-
 	if l.enableColor {
 		if l.showTime {
 			timestamp := time.Now().Format("15:04:05")
-			fmt.Printf("%s%s%s %s%s%s %s\n", colorGray, timestamp, colorReset, color, prefix, colorReset, message)
+			fmt.Print(colorGray, timestamp, colorReset, " ", color, prefix, colorReset, " ", message, "\n")
 		} else {
-			fmt.Printf("%s%s%s %s\n", color, prefix, colorReset, message)
+			fmt.Print(color, prefix, colorReset, " ", message, "\n")
 		}
 	} else {
 		if l.showTime {
 			timestamp := time.Now().Format("15:04:05")
-			fmt.Printf("%s %s %s\n", timestamp, prefix, message)
+			fmt.Print(timestamp, " ", prefix, " ", message, "\n")
 		} else {
-			fmt.Printf("%s %s\n", prefix, message)
+			fmt.Print(prefix, " ", message, "\n")
 		}
 	}
 }
 
-// Debug 调试日志（灰色）
-func Debug(format string, args ...interface{}) {
-	defaultLogger.log(LevelDebug, format, args...)
+// logMessage 内部方法：输出简单消息（不格式化）
+func (l *Logger) logMessage(level LogLevel, msg string) {
+	l.printLog(level, msg)
 }
 
-// Info 信息日志（蓝色）
-func Info(format string, args ...interface{}) {
-	defaultLogger.log(LevelInfo, format, args...)
+// logFormat 内部方法：格式化输出
+func (l *Logger) logFormat(level LogLevel, format string, args ...interface{}) {
+	message := fmt.Sprintf(format, args...)
+	l.printLog(level, message)
 }
 
-// Success 成功日志（绿色）
-func Success(format string, args ...interface{}) {
-	defaultLogger.log(LevelSuccess, format, args...)
+// Debug 调试日志（灰色）- 输出消息
+func Debug(msg string) {
+	defaultLogger.logMessage(LevelDebug, msg)
 }
 
-// Warning 警告日志（黄色）
-func Warning(format string, args ...interface{}) {
-	defaultLogger.log(LevelWarning, format, args...)
+// Debugf 调试日志（灰色）- 格式化输出
+func Debugf(format string, args ...interface{}) {
+	defaultLogger.logFormat(LevelDebug, format, args...)
 }
 
-// Error 错误日志（红色）
-func Error(format string, args ...interface{}) {
-	defaultLogger.log(LevelError, format, args...)
+// Info 信息日志（蓝色）- 输出消息
+func Info(msg string) {
+	defaultLogger.logMessage(LevelInfo, msg)
+}
+
+// Infof 信息日志（蓝色）- 格式化输出
+func Infof(format string, args ...interface{}) {
+	defaultLogger.logFormat(LevelInfo, format, args...)
+}
+
+// Success 成功日志（绿色）- 输出消息
+func Success(msg string) {
+	defaultLogger.logMessage(LevelSuccess, msg)
+}
+
+// Successf 成功日志（绿色）- 格式化输出
+func Successf(format string, args ...interface{}) {
+	defaultLogger.logFormat(LevelSuccess, format, args...)
+}
+
+// Warning 警告日志（黄色）- 输出消息
+func Warning(msg string) {
+	defaultLogger.logMessage(LevelWarning, msg)
+}
+
+// Warningf 警告日志（黄色）- 格式化输出
+func Warningf(format string, args ...interface{}) {
+	defaultLogger.logFormat(LevelWarning, format, args...)
+}
+
+// Error 错误日志（红色）- 输出消息
+func Error(msg string) {
+	defaultLogger.logMessage(LevelError, msg)
+}
+
+// Errorf 错误日志（红色）- 格式化输出
+func Errorf(format string, args ...interface{}) {
+	defaultLogger.logFormat(LevelError, format, args...)
 }
 
 // SetColorEnabled 设置是否启用颜色
