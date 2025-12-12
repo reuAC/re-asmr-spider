@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -18,26 +19,23 @@ import (
 
 var Conf *config.Config
 
-func init() {
-	var err error
-	Conf, err = config.GetConfig()
-	if err != nil {
-		fmt.Printf("Failed to get config: %v\n", err)
-		os.Exit(1)
-	}
+// InitSpider 初始化spider包的全局配置
+func InitSpider(cfg *config.Config) error {
+	Conf = cfg
 
 	// 初始化i18n (使用配置中的语言设置)
-	if err := i18n.Init(Conf.Language); err != nil {
-		fmt.Printf("Failed to initialize i18n: %v\n", err)
-		os.Exit(1)
+	if err := i18n.Init(cfg.Language); err != nil {
+		return fmt.Errorf("failed to initialize i18n: %w", err)
 	}
 
 	// 初始化代理设置
-	if Conf.Proxy != "" {
-		if err := utils.SetProxy(Conf.Proxy); err != nil {
-			fmt.Printf("Failed to set proxy: %v\n", err)
+	if cfg.Proxy != "" {
+		if err := utils.SetProxy(cfg.Proxy); err != nil {
+			return fmt.Errorf("failed to set proxy: %w", err)
 		}
 	}
+
+	return nil
 }
 
 type FailedTask struct {
@@ -89,12 +87,13 @@ func (ac *ASMRClient) Login() error {
 		return err
 	}
 	client := utils.Client.Get().(*http.Client)
+	defer utils.Client.Put(client) // 确保client一定会被释放
+
 	req, _ := http.NewRequest("POST", "https://api.asmr.one/api/auth/me", bytes.NewBuffer(payload))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Referer", "https://www.asmr.one/")
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36")
 	resp, err := client.Do(req)
-	utils.Client.Put(client)
 	if err != nil {
 		utils.Error(i18n.T("network_error", err))
 		return err
@@ -117,12 +116,13 @@ func (ac *ASMRClient) GetVoiceTracks(id string) ([]track, error) {
 	utils.GlobalMonitor.UpdateActivity()
 
 	client := utils.Client.Get().(*http.Client)
+	defer utils.Client.Put(client) // 确保client一定会被释放
+
 	req, _ := http.NewRequest("GET", "https://api.asmr.one/api/tracks/"+id, nil)
 	req.Header.Set("Authorization", ac.Authorization)
 	req.Header.Set("Referer", "https://www.asmr.one/")
 	req.Header.Set("User-Agent", "PostmanRuntime/7.29.0")
 	resp, err := client.Do(req)
-	utils.Client.Put(client)
 	if err != nil {
 		utils.Error(i18n.T("request_failed", err))
 		return nil, err
@@ -175,7 +175,7 @@ func (ac *ASMRClient) RetryFailedTasks() bool {
 			continue
 		}
 		utils.Info(i18n.T("retrying", task.RetryCount+1, ac.MaxRetry) + ": " + task.FileName)
-		ac.downloadFileWithRetry(task.URL, task.DirPath, task.FileName, task.RetryCount+1)
+		ac.downloadFile(task.URL, task.DirPath, task.FileName, task.RetryCount+1)
 		retriedCount++
 	}
 
@@ -191,6 +191,10 @@ func (ac *ASMRClient) RetryFailedTasks() bool {
 }
 
 func (ac *ASMRClient) Download(id string) {
+	ac.DownloadWithFilter(id, nil, nil)
+}
+
+func (ac *ASMRClient) DownloadWithFilter(id string, strategy *FilterStrategy, onConflict func(*FormatAnalysis) *FilterStrategy) {
 	id = strings.Replace(id, "RJ", "", 1)
 	utils.Info(i18n.T("fetching_work_info", "RJ"+id))
 	tracks, err := ac.GetVoiceTracks(id)
@@ -199,25 +203,75 @@ func (ac *ASMRClient) Download(id string) {
 		return
 	}
 	basePath := "downloads/RJ" + id
-	ac.EnsureDir(tracks, basePath)
+
+	// 分析文件格式
+	analysis := AnalyzeFormats(tracks, basePath)
+
+	// 如果有格式冲突且提供了回调函数
+	if len(analysis.ConflictGroups) > 0 && onConflict != nil {
+		strategy = onConflict(analysis)
+	}
+
+	// 应用过滤策略
+	var filteredTracks []track
+	if strategy != nil {
+		filteredFiles := analysis.ApplyFilter(strategy)
+		// 重建track列表（保持层次结构）
+		filteredTracks = ac.rebuildTracksWithFilter(tracks, basePath, filteredFiles)
+	} else {
+		filteredTracks = tracks
+	}
+
+	ac.EnsureDir(filteredTracks, basePath)
 	utils.Success(i18n.T("work_info_fetched", "RJ"+id))
 }
 
-func (ac *ASMRClient) downloadFileWithRetry(url string, dirPath string, fileName string, retryCount int) {
-	ac.downloadFileInternal(url, dirPath, fileName, retryCount)
-}
+// rebuildTracksWithFilter 根据过滤后的文件列表重建track结构
+func (ac *ASMRClient) rebuildTracksWithFilter(tracks []track, currentPath string, filteredFiles []*FileInfo) []track {
+	result := make([]track, 0)
 
-func (ac *ASMRClient) DownloadFile(url string, dirPath string, fileName string) {
-	ac.downloadFileInternal(url, dirPath, fileName, 0)
-}
-
-func (ac *ASMRClient) downloadFileInternal(url string, dirPath string, fileName string, retryCount int) {
-	if runtime.GOOS == "windows" {
-		for _, str := range []string{"?", "<", ">", ":", "/", "\\", "*", "|"} {
-			fileName = strings.Replace(fileName, str, "_", -1)
+	for _, t := range tracks {
+		if t.Type != "folder" {
+			// 检查该文件是否在过滤列表中
+			shouldInclude := false
+			for _, file := range filteredFiles {
+				if file.Track.Title == t.Title && file.Path == currentPath {
+					shouldInclude = true
+					break
+				}
+			}
+			if shouldInclude {
+				result = append(result, t)
+			}
+		} else {
+			// 递归处理文件夹
+			childTracks := ac.rebuildTracksWithFilter(t.Children, filepath.Join(currentPath, t.Title), filteredFiles)
+			if len(childTracks) > 0 {
+				newFolder := t
+				newFolder.Children = childTracks
+				result = append(result, newFolder)
+			}
 		}
 	}
-	savePath := dirPath + "/" + fileName
+
+	return result
+}
+
+func (ac *ASMRClient) downloadFile(url string, dirPath string, fileName string, retryCount int) {
+	// 所有系统都需要处理的基本非法字符
+	invalidChars := []string{"/", "\x00"} // 路径分隔符和NUL字符在所有系统都非法
+
+	// Windows系统的额外非法字符
+	if runtime.GOOS == "windows" {
+		invalidChars = append(invalidChars, "?", "<", ">", ":", "\\", "*", "|", "\"")
+	}
+
+	// 替换所有非法字符
+	for _, char := range invalidChars {
+		fileName = strings.ReplaceAll(fileName, char, "_")
+	}
+
+	savePath := filepath.Join(dirPath, fileName)
 	headers := map[string]string{
 		"Referer": "https://www.asmr.one/",
 	}
@@ -250,7 +304,7 @@ func (ac *ASMRClient) downloadFileInternal(url string, dirPath string, fileName 
 	downloader.OnFailure = func(failedUrl, failedPath, failedName string, err error) {
 		ac.AddFailedTask(failedUrl, failedPath, failedName, retryCount)
 	}
-	ac.WorkerPool.TaskQueue <- downloader
+	ac.WorkerPool.Submit(downloader)
 }
 
 func (ac *ASMRClient) EnsureDir(tracks []track, basePath string) {
@@ -258,9 +312,9 @@ func (ac *ASMRClient) EnsureDir(tracks []track, basePath string) {
 	_ = os.MkdirAll(path, os.ModePerm)
 	for _, t := range tracks {
 		if t.Type != "folder" {
-			ac.DownloadFile(t.MediaDownloadURL, path, t.Title)
+			ac.downloadFile(t.MediaDownloadURL, path, t.Title, 0)
 		} else {
-			ac.EnsureDir(t.Children, path+"/"+t.Title)
+			ac.EnsureDir(t.Children, filepath.Join(path, t.Title))
 		}
 	}
 }

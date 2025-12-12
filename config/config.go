@@ -6,9 +6,17 @@ import (
 	"os"
 )
 
+type FormatStrategy struct {
+	Mode             string              `json:"mode"`               // "all", "priority", "manual"
+	PriorityFormats  []string            `json:"priority_formats"`   // 优先格式列表
+	ManualSelections map[string][]string `json:"manual_selections"`  // 手动选择记录
+	IncludeFormats   []string            `json:"include_formats"`    // 额外包含的扩展名
+}
+
 type DownloadState struct {
-	InProgress bool     `json:"in_progress"`
-	Tasks      []string `json:"tasks"`
+	InProgress      bool            `json:"in_progress"`
+	Tasks           []string        `json:"tasks"`
+	FormatStrategy  *FormatStrategy `json:"format_strategy,omitempty"` // 格式筛选策略
 }
 
 type Config struct {
@@ -48,10 +56,18 @@ func SaveConfig(cfg *Config) error {
 	return os.WriteFile("config.json", data, 0644)
 }
 
-// SaveDownloadState 保存下载状态
+// SaveDownloadState 保存下载状态（不含格式策略）
 func SaveDownloadState(cfg *Config, tasks []string) error {
 	cfg.DownloadState.InProgress = true
 	cfg.DownloadState.Tasks = tasks
+	return SaveConfig(cfg)
+}
+
+// SaveDownloadStateWithStrategy 保存下载状态（含格式策略）
+func SaveDownloadStateWithStrategy(cfg *Config, tasks []string, strategy *FormatStrategy) error {
+	cfg.DownloadState.InProgress = true
+	cfg.DownloadState.Tasks = tasks
+	cfg.DownloadState.FormatStrategy = strategy
 	return SaveConfig(cfg)
 }
 
@@ -59,11 +75,17 @@ func SaveDownloadState(cfg *Config, tasks []string) error {
 func ClearDownloadState(cfg *Config) error {
 	cfg.DownloadState.InProgress = false
 	cfg.DownloadState.Tasks = []string{}
+	cfg.DownloadState.FormatStrategy = nil
 	return SaveConfig(cfg)
 }
 
 func GetConfig() (*Config, error) {
-	if _, err := os.Stat("config.json"); os.IsNotExist(err) {
+	return GetConfigFromPath("config.json")
+}
+
+// GetConfigFromPath 从指定路径加载配置文件
+func GetConfigFromPath(path string) (*Config, error) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
 		// 配置文件不存在，创建默认配置
 		cfg := generateDefaultConfig()
 		if saveErr := SaveConfig(cfg); saveErr != nil {
@@ -72,7 +94,7 @@ func GetConfig() (*Config, error) {
 		return cfg, nil
 	}
 
-	file, err := os.Open("config.json")
+	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
