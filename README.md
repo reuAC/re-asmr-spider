@@ -12,13 +12,16 @@ A simple and efficient ASMR audio download tool.
 - Smart retry mechanism for handling network errors
 - Real-time progress display
 - File size verification, automatically skip downloaded content
-- Multi-language support (20+ languages)
+- Multi-language support
 - Multi-platform support (Windows, Linux, macOS, BSD)
 - Proxy configuration
+- Custom filtering
+- Command-line mode
 
 ## Screenshots
 ![Download Attempt](docs/images/asmr-spider-0.png)
 ![Retry Download](docs/images/asmr-spider-1.png)
+![Custom Filtering](docs/images/asmr-spider-3.png)
 
 ## Installation
 
@@ -96,12 +99,67 @@ go build -o re-asmr-spider
 
 ## Usage
 
-### First Run
+### Interactive Mode (Default)
 
 Run the executable. A default configuration file `config.json` will be created automatically.
 
 ```bash
 ./re-asmr-spider
+```
+
+1. Select option `1. Start Download`
+2. Enter RJ number (e.g., `RJ373001`)
+3. For multiple downloads, separate RJ numbers with spaces (e.g., `RJ373001 RJ123456 RJ789012`)
+
+Downloads are saved to the `downloads/` directory.
+
+### Command-Line Mode
+
+For automation and scripting, use CLI mode to download directly without interactive menus:
+
+```bash
+# Download a single RJ
+./re-asmr-spider -download RJ123456
+
+# Download multiple RJs
+./re-asmr-spider -download RJ123456,RJ789012,RJ345678
+
+# Use custom account credentials
+./re-asmr-spider -download RJ123456 -account user@example.com -password mypass
+
+# Configure download parameters
+./re-asmr-spider -download RJ123456 -max-task 5 -max-thread 16 -buffer-size 16
+
+# Use proxy
+./re-asmr-spider -download RJ123456 -proxy http://127.0.0.1:7890
+
+# Use custom config file
+./re-asmr-spider -config /path/to/config.json -download RJ123456
+
+# Download priority
+# When flac conflicts occur, download only flac
+# For example, if files exist in flac, wav, mp3, and ogg formats with same name, only flac will be downloaded.
+# But if flac doesn't exist, wav will be downloaded. If neither exists, mp3 and ogg will be downloaded
+./re-asmr-spider -download RJ123456 -format-priority flac,wav
+
+# Download flac with priority, and additionally download lrc subtitle files
+./re-asmr-spider -download RJ123456 -format-priority flac,wav -include-formats lrc
+```
+
+**Command-Line Options:**
+
+```
+-download string      RJ numbers to download (comma-separated)
+-config string        Path to config file (default: config.json)
+-account string       ASMR.one account username (overrides config)
+-password string      ASMR.one account password (overrides config)
+-max-task int         Maximum concurrent download tasks
+-max-thread int       Number of threads per file download
+-max-retry int        Maximum retry attempts for failed downloads
+-buffer-size int      Buffer size in MB (1-64, default: 8)
+-proxy string         HTTP/HTTPS proxy (e.g., http://127.0.0.1:7890)
+-version              Show version information
+-help                 Show help message
 ```
 
 ### Configuration
@@ -116,7 +174,8 @@ Edit `config.json` or use the built-in configuration menu (option 2):
   "max_thread": 8,
   "max_retry": 3,
   "language": "zh-CN",
-  "proxy": ""
+  "proxy": "",
+  "buffer_size_mb": 8
 }
 ```
 
@@ -129,19 +188,25 @@ Edit `config.json` or use the built-in configuration menu (option 2):
 - `max_retry` - Maximum retry attempts for failed downloads
 - `language` - Interface language (see supported languages below)
 - `proxy` - HTTP/HTTPS proxy (e.g., `http://127.0.0.1:7890`, leave empty to disable)
+- `buffer_size_mb` - Download buffer size in MB (1-64, default: 8, optimized for VPS)
 
-### Download Audio
+### Format Filtering
 
-1. Run the program
-2. Select option `1. Start Download`
-3. Enter RJ number (e.g., `RJ373001`)
-4. For multiple downloads, separate RJ numbers with spaces (e.g., `RJ373001 RJ123456 RJ789012`)
+When downloading audio works, you may encounter files with the same name but different formats (e.g., `.wav`, `.flac`, `.mp3`). The program provides intelligent format filtering:
 
-Downloads are saved to the `downloads/` directory.
+**Interactive Mode:**
+- Automatically detects format conflicts
+- Prompts user for format selection one by one
+- Options include:
+  - Download all formats
+  - Select specific formats
+  - Apply selection to all remaining similar files (batch mode)
+  - Download all formats for all remaining files
+- Format selection is saved and can be resumed if download is interrupted
 
 ### Resume Downloads
 
-If a download is interrupted, the program will detect incomplete tasks on the next run and prompt you to continue.
+If a download is interrupted, the program will detect incomplete tasks on the next run and prompt you to continue. Your format selection preferences will be preserved.
 
 ## Supported Languages
 

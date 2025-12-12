@@ -12,13 +12,16 @@
 - 智能重试机制，自动处理网络错误
 - 实时进度显示
 - 文件大小校验，自动跳过已下载的内容
-- 多语言支持（20+种语言）
+- 多语言支持
 - 多平台支持（Windows、Linux、macOS、BSD）
 - 代理配置
+- 自定义筛选
+- 命令行模式
 
 ## 运行截图
 ![尝试下载作品](./images/asmr-spider-0.png)
 ![重试下载](./images/asmr-spider-1.png)
+![自定义筛选](./images/asmr-spider-3.png)
 
 ## 安装
 
@@ -96,12 +99,67 @@ go build -o re-asmr-spider
 
 ## 使用方法
 
-### 首次运行
+### 交互模式
 
 运行可执行文件，将自动创建默认配置文件 `config.json`。
 
 ```bash
 ./re-asmr-spider
+```
+
+1. 选择选项 `1. 开始下载`
+2. 输入 RJ 号（例如：`RJ373001`）
+3. 多个下载时，用空格分隔 RJ 号（例如：`RJ373001 RJ123456 RJ789012`）
+
+下载的文件保存在 `downloads/` 目录。
+
+### 命令行模式
+
+用于自动化和脚本调用，无需交互式菜单直接下载：
+
+```bash
+# 下载单个 RJ 号
+./re-asmr-spider -download RJ123456
+
+# 下载多个 RJ 号
+./re-asmr-spider -download RJ123456,RJ789012,RJ345678
+
+# 使用自定义账号密码
+./re-asmr-spider -download RJ123456 -account user@example.com -password mypass
+
+# 配置下载参数
+./re-asmr-spider -download RJ123456 -max-task 5 -max-thread 16 -buffer-size 16
+
+# 使用代理
+./re-asmr-spider -download RJ123456 -proxy http://127.0.0.1:7890
+
+# 使用自定义配置文件
+./re-asmr-spider -config /path/to/config.json -download RJ123456
+
+# 下载优先级
+# 当出现有关 flac 的冲突时，仅下载flac
+# 比如同时存在 flac wav mp3 ogg 四个格式的同名文件，则仅下载flac。
+# 但若没有 flac，则会下载wav。都没有时则会下载 mp3 与 ogg 
+./re-asmr-spider -download RJ123456 -format-priority flac,wav
+
+# 优先下载 flac，并额外下载 lrc 字幕文件
+./re-asmr-spider -download RJ123456 -format-priority flac,wav -include-formats lrc
+```
+
+**命令行选项：**
+
+```
+-download string      要下载的 RJ 号（逗号分隔）
+-config string        配置文件路径（默认: config.json）
+-account string       ASMR.one 账号用户名（覆盖配置文件）
+-password string      ASMR.one 账号密码（覆盖配置文件）
+-max-task int         最大并发下载任务数
+-max-thread int       单文件下载线程数
+-max-retry int        失败下载的最大重试次数
+-buffer-size int      缓冲区大小（MB），范围 1-64，默认 8
+-proxy string         HTTP/HTTPS 代理（例如：http://127.0.0.1:7890）
+-version              显示版本信息
+-help                 显示帮助信息
 ```
 
 ### 配置
@@ -116,7 +174,8 @@ go build -o re-asmr-spider
   "max_thread": 8,
   "max_retry": 3,
   "language": "zh-CN",
-  "proxy": ""
+  "proxy": "",
+  "buffer_size_mb": 8
 }
 ```
 
@@ -129,41 +188,32 @@ go build -o re-asmr-spider
 - `max_retry` - 失败下载的最大重试次数
 - `language` - 界面语言（见下方支持的语言列表）
 - `proxy` - HTTP/HTTPS 代理（例如：`http://127.0.0.1:7890`，留空则禁用）
+- `buffer_size_mb` - 下载缓冲区大小（MB），范围 1-64，默认 8，针对 VPS 优化
 
-### 下载音声
+### 格式筛选
 
-1. 运行程序
-2. 选择选项 `1. 开始下载`
-3. 输入 RJ 号（例如：`RJ373001`）
-4. 多个下载时，用空格分隔 RJ 号（例如：`RJ373001 RJ123456 RJ789012`）
+下载音声作品时，可能会遇到同名不同格式的文件（如 `.wav`、`.flac`、`.mp3`）。程序提供智能格式筛选功能：
 
-下载的文件保存在 `downloads/` 目录。
+**交互模式：**
+- 自动检测格式冲突
+- 逐个提示用户选择要下载的格式
+- 选项包括：
+  - 下载所有格式
+  - 选择特定格式
+  - 将选择应用到所有剩余的同类文件（批量模式）
+  - 为所有剩余文件下载所有格式
+- 格式选择会被保存，下载中断后可继续使用
 
 ### 恢复下载
 
-如果下载被中断，程序会在下次运行时检测到未完成的任务并提示您继续。
+如果下载被中断，程序会在下次运行时检测到未完成的任务并提示您继续。您的格式选择偏好将被保留。
 
 ## 支持的语言
 
-- 简体中文和繁体中文
+- 简体中文
+- 繁體中文
 - English
 - 日本語
-- Deutsch
-- Español
-- Français
-- Português
-- Русский
-- Bahasa Indonesia
-- Tiếng Việt
-- हिन्दी
-- বাংলা
-- తెలుగు
-- Türkçe
-- اردو
-- Hausa
-- Esperanto
-- 喵喵语
-- 火星语
 
 通过配置菜单（选项4）或编辑 `config.json` 切换语言。
 
